@@ -1,5 +1,6 @@
 # Ignore the default SQLite database.
-/db/*.sqlite3
+/database/*.sqlite3
+/database
 
 # Created by https://www.toptal.com/developers/gitignore/api/vim,go,database,asdf
 # Edit at https://www.toptal.com/developers/gitignore?templates=vim,go,database,asdf
