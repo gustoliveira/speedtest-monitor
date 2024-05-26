@@ -11,14 +11,28 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func main() {
-	body, err := exec.Command("cat", "response.json").Output()
-	if err != nil {
-		log.Fatalln(err)
+type SpeedtestResponse struct {
+	ID           int64
+	DownloadBits float64   `json:"download"`
+	UploadBits   float64   `json:"upload"`
+	Ping         float32   `json:"ping"`
+	Timestamp    time.Time `json:"timestamp"`
+	Client       struct {
+		IP  string `json:"ip"`
+		ISP string `json:"isp"`
 	}
+	Server struct {
+		Sponsor string `json:"sponsor"`
+		Country string `json:"country"`
+		Name    string `json:"name"`
+	}
+}
+
+func main() {
+	body := getSpeedtest()
 
 	var response SpeedtestResponse
-	err = json.Unmarshal(body, &response)
+	err := json.Unmarshal(body, &response)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -36,25 +50,12 @@ func main() {
 	insertSpeedtest(db, response)
 }
 
-type SpeedtestResponse struct {
-	ID           int64
-	DownloadBits float64   `json:"download"`
-	UploadBits   float64   `json:"upload"`
-	Ping         float32   `json:"ping"`
-	Timestamp    time.Time `json:"timestamp"`
-	Client       Client
-	Server       Server
-}
-
-type Client struct {
-	IP  string `json:"ip"`
-	ISP string `json:"isp"`
-}
-
-type Server struct {
-	Sponsor string `json:"sponsor"`
-	Country string `json:"country"`
-	Name    string `json:"name"`
+func getSpeedtest() []byte {
+	body, err := exec.Command("speedtest-cli", "--json").Output()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return body
 }
 
 func createTable(db *sql.DB) {
