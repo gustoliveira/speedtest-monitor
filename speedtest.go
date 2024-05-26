@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/robfig/cron"
 )
 
 type SpeedtestResponse struct {
@@ -29,16 +32,6 @@ type SpeedtestResponse struct {
 }
 
 func main() {
-	body := getSpeedtest()
-
-	var response SpeedtestResponse
-	err := json.Unmarshal(body, &response)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	fmt.Println(response)
-
 	db, err := sql.Open("sqlite3", "./database/speedtest.db")
 	if err != nil {
 		log.Fatalln(err)
@@ -47,13 +40,61 @@ func main() {
 
 	createTable(db)
 
-	insertSpeedtest(db, response)
+	startCronJob(func() {
+		body := getSpeedtest()
+
+		var response SpeedtestResponse
+		err := json.Unmarshal(body, &response)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		insertSpeedtest(db, response)
+	})
+
+	select {}
+}
+
+func startCronJob(callback func()) {
+	timezone := os.Getenv("TIMEZONE")
+	if timezone == "" {
+		log.Fatalln("TIMEZONE is not set\n")
+	}
+
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		log.Fatalln("Could not get location from TIMEZONE", timezone, "=", err)
+	}
+
+	test_period_string := os.Getenv("TEST_PERIOD_MIN")
+	if test_period_string == "" {
+		log.Fatalln("TEST_PERIOD_MIN is not set")
+	}
+
+	test_period, err := strconv.Atoi(test_period_string)
+	if err != nil {
+		log.Fatalln("Error converting TEST_PERIOD_MIN =", err)
+	}
+
+	seconds := test_period * 60
+	seconds = 30
+	spec := fmt.Sprintf("@every %vs", seconds)
+
+	cronJob := cron.NewWithLocation(loc)
+
+	cronJob.AddFunc(spec, func() {
+		now := time.Now()
+		fmt.Printf("Running cron job %v\n", now)
+		callback()
+	})
+
+	cronJob.Start()
 }
 
 func getSpeedtest() []byte {
 	body, err := exec.Command("speedtest-cli", "--json").Output()
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("Could not run speedtest-cli =", err)
 	}
 	return body
 }
