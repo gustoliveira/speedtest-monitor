@@ -77,7 +77,6 @@ func startCronJob(callback func()) {
 	}
 
 	seconds := test_period * 60
-	seconds = 30
 	spec := fmt.Sprintf("@every %vs", seconds)
 
 	cronJob := cron.NewWithLocation(loc)
@@ -92,10 +91,24 @@ func startCronJob(callback func()) {
 }
 
 func getSpeedtest() []byte {
-	body, err := exec.Command("speedtest-cli", "--json").Output()
-	if err != nil {
-		log.Fatalln("Could not run speedtest-cli =", err)
+	max_attempts := 5
+
+	var body []byte
+
+	for ok := true; ok; ok = (max_attempts != 0) {
+		fmt.Println("Trying to run speedtest-cli command...")
+
+		response, err := exec.Command("speedtest-cli", "--json").Output()
+		if err != nil {
+			log.Panicf("Could not run speedtest-cli = %v... %v attempts left\n", err, max_attempts)
+			max_attempts--
+			continue
+		}
+
+		body = response
+		max_attempts = 0
 	}
+
 	return body
 }
 
