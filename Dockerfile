@@ -1,20 +1,17 @@
 FROM golang:1.22.2
 
+WORKDIR /app
+
 RUN \
   apt update && \
   apt install curl -y && \
   curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | bash && \
-  apt install speedtest
+  apt install speedtest -y && \
+  mkdir database
 
-RUN mkdir database
-
-WORKDIR /app
-
-COPY go.mod go.sum ./
+COPY go.mod go.sum speedtest.go /app/
 
 RUN go mod download
-
-COPY . .
 
 RUN go build -o speedtest
 

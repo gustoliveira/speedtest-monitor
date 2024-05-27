@@ -2,7 +2,7 @@ version: '3'
 
 services:
   speedtest-monitoring:
-    image: gustoliveira/speedtest-monitoring:0.1
+    image: ghcr.io/gustoliveira/speedtest-monitoring:latest
     container_name: speedtest-monitoring
     environment:
       - TIMEZONE=America/Sao_Paulo
