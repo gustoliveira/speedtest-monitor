@@ -131,6 +131,7 @@ func getSpeedtest() []byte {
 
 		body = response
 		max_attempts = 0
+		fmt.Println("Speedtest command ran successfully!")
 	}
 
 	return body
@@ -202,7 +203,7 @@ func insertSpeedtest(db *sql.DB, entry SpeedtestResponse) {
 		log.Fatalln(err)
 	}
 
-	statement.Exec(
+	_, err = statement.Exec(
 		entry.Timestamp,
 		entry.ISP,
 		entry.Ping.Latency,
@@ -224,4 +225,9 @@ func insertSpeedtest(db *sql.DB, entry SpeedtestResponse) {
 		entry.Result.SpeedtestResponseUrl,
 		entry.Result.ID,
 	)
+	if err != nil {
+		log.Fatalln("Could not insert into database = ", err)
+	}
+
+	fmt.Println("Inserted into database successfully!")
 }
