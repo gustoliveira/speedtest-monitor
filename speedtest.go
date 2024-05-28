@@ -15,19 +15,43 @@ import (
 )
 
 type SpeedtestResponse struct {
-	ID           int64
-	DownloadBits float64   `json:"download"`
-	UploadBits   float64   `json:"upload"`
-	Ping         float32   `json:"ping"`
-	Timestamp    time.Time `json:"timestamp"`
-	Client       struct {
-		IP  string `json:"ip"`
-		ISP string `json:"isp"`
+	ID         int64
+	Timestamp  time.Time `json:"timestamp"`
+	ISP        string    `json:"isp"`
+	PackatLoss string    `json:"packatLoss"`
+	Ping       struct {
+		Latency float32 `json:"latency"`
+		Jitter  float32 `json:"jitter"`
+	}
+	Interface struct {
+		ExternalIp  string `json:"externalIp"`
+		ContainerIp string `json:"internalIp"`
+		IsVPN       bool   `json:"isVpn"`
 	}
 	Server struct {
-		Sponsor string `json:"sponsor"`
-		Country string `json:"country"`
-		Name    string `json:"name"`
+		Name     string `json:"name"`
+		Location string `json:"location"`
+		Country  string `json:"country"`
+	}
+	Download struct {
+		Bandwidth float64 `json:"bandwidth"`
+		Bytes     float64 `json:"bytes"`
+		Latency   struct {
+			Ping   float32 `json:"iqm"`
+			Jitter float32 `json:"jitter"`
+		}
+	}
+	Upload struct {
+		Bandwidth float64 `json:"bandwidth"`
+		Bytes     float64 `json:"bytes"`
+		Latency   struct {
+			Ping   float32 `json:"iqm"`
+			Jitter float32 `json:"jitter"`
+		}
+	}
+	Result struct {
+		SpeedtestResponseUrl string `json:"url"`
+		ID                   string `json:"id"`
 	}
 }
 
@@ -58,7 +82,7 @@ func main() {
 func startCronJob(callback func()) {
 	timezone := os.Getenv("TIMEZONE")
 	if timezone == "" {
-		log.Fatalln("TIMEZONE is not set\n")
+		log.Fatalln("TIMEZONE is not set")
 	}
 
 	loc, err := time.LoadLocation(timezone)
@@ -98,9 +122,9 @@ func getSpeedtest() []byte {
 	for ok := true; ok; ok = (max_attempts != 0) {
 		fmt.Println("Trying to run speedtest-cli command...")
 
-		response, err := exec.Command("speedtest-cli", "--json").Output()
+		response, err := exec.Command("speedtest", "--accept-license", "--accept-gdpr", "--format=json").Output()
 		if err != nil {
-			log.Panicf("Could not run speedtest-cli = %v... %v attempts left\n", err, max_attempts)
+			log.Panicf("Could not run speedtest = %v... %v attempts left\n", err, max_attempts)
 			max_attempts--
 			continue
 		}
@@ -116,15 +140,26 @@ func createTable(db *sql.DB) {
 	query := `
 		CREATE TABLE IF NOT EXISTS speedtest (
 			id INTEGER PRIMARY KEY,
-			downloadBits FLOAT,
-			uploadBits FLOAT,
-			ping FLOAT,
 			timestamp TIMESTAMP,
-			ip_client TEXT,
-			isp_clinet TEXT,
-			sponsor_server TEXT,
-			country_server TEXT,
-			name_server TEXT
+			isp TEXT,
+			ping_latency FLOAT,
+			ping_jitter FLOAT,
+			is_vpn INTEGER,
+			container_ip STRING,
+			external_ip STRING,
+			name_server STRING,
+			location_server STRING,
+			country_server STRING,
+			bandwidth_download FLOAT,
+			bytes_download FLOAT,
+			ping_download FLOAT,
+			jitter_download FLOAT,
+			bandwidth_upload FLOAT,
+			bytes_upload FLOAT,
+			ping_upload FLOAT,
+			jitter_upload FLOAT,
+			speedtest_response_url TEXT,
+			speedtest_id TEXT
 		)
 	`
 
@@ -139,16 +174,27 @@ func createTable(db *sql.DB) {
 func insertSpeedtest(db *sql.DB, entry SpeedtestResponse) {
 	query := `
 		INSERT INTO speedtest (
-			downloadBits,
-			uploadBits,
-			ping,
 			timestamp,
-			ip_client,
-			isp_clinet,
-			sponsor_server,
+			isp,
+			ping_latency,
+			ping_jitter,
+			is_vpn,
+			container_ip,
+			external_ip,
+			name_server,
+			location_server,
 			country_server,
-			name_server
-		) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )
+			bandwidth_download,
+			bytes_download,
+			ping_download,
+			jitter_download,
+			bandwidth_upload,
+			bytes_upload,
+			ping_upload,
+			jitter_upload,
+			speedtest_response_url,
+			speedtest_id
+		) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
 	`
 
 	statement, err := db.Prepare(query)
@@ -157,14 +203,25 @@ func insertSpeedtest(db *sql.DB, entry SpeedtestResponse) {
 	}
 
 	statement.Exec(
-		entry.DownloadBits,
-		entry.UploadBits,
-		entry.Ping,
 		entry.Timestamp,
-		entry.Client.IP,
-		entry.Client.ISP,
-		entry.Server.Sponsor,
-		entry.Server.Country,
+		entry.ISP,
+		entry.Ping.Latency,
+		entry.Ping.Jitter,
+		entry.Interface.IsVPN,
+		entry.Interface.ContainerIp,
+		entry.Interface.ExternalIp,
 		entry.Server.Name,
+		entry.Server.Location,
+		entry.Server.Country,
+		entry.Download.Bandwidth,
+		entry.Download.Bytes,
+		entry.Download.Latency.Ping,
+		entry.Download.Latency.Jitter,
+		entry.Upload.Bandwidth,
+		entry.Upload.Bytes,
+		entry.Upload.Latency.Ping,
+		entry.Upload.Latency.Jitter,
+		entry.Result.SpeedtestResponseUrl,
+		entry.Result.ID,
 	)
 }
