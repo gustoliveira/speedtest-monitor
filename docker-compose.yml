@@ -1,9 +1,11 @@
 version: '3'
 
 services:
-  speedtest-monitoring:
-    image: ghcr.io/gustoliveira/speedtest-monitoring:latest
-    container_name: speedtest-monitoring
+  speedtest-monitor:
+    image: ghcr.io/gustoliveira/speedtest-monitor:latest
+    container_name: speedtest-monitor
     environment:
       - TIMEZONE=America/Sao_Paulo
       - TEST_PERIOD_MIN=30
+    volumes:
+      # - /path/to/permanent/database/volume/speedtest-monitor/database=/app/database ## Optional

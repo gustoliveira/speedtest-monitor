@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  publish-speedtest-monitoring-image:
+  publish-speedtest-monitor-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,6 +21,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
         run: |
-          docker build . --tag ghcr.io/gustoliveira/speedtest-monitoring:latest
-          docker push ghcr.io/gustoliveira/speedtest-monitoring:latest
+          docker build . --tag ghcr.io/gustoliveira/speedtest-monitor:latest
+          docker push ghcr.io/gustoliveira/speedtest-monitor:latest
           

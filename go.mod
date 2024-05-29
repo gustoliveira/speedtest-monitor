@@ -1,4 +1,4 @@
-module gustoliveira/speedtest-monitoring
+module gustoliveira/speedtest-monitor
 
 go 1.22.2
 
