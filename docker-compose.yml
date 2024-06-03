@@ -7,5 +7,10 @@ services:
     environment:
       - TIMEZONE=America/Sao_Paulo
       - TEST_PERIOD_MIN=30
+      - PORT=8080
+      - DB_URL=./database/speedtest.db
+      - APP_ENV=local
+    ports:
+      - "8080:8080"
     volumes:
       # - /path/to/permanent/database/volume/speedtest-monitor/database=/app/database ## Optional

@@ -9,10 +9,10 @@ RUN \
   apt install speedtest -y && \
   mkdir database
 
-COPY go.mod go.sum speedtest.go /app/
-
+COPY . /app
+ 
 RUN go mod download
 
-RUN go build -o speedtest
+RUN go build -o main cmd/api/main.go
 
-CMD ["./speedtest"]
+CMD ["./main"]
